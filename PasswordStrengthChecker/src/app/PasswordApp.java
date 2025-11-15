@@ -72,6 +72,24 @@ public class PasswordApp {
                 }
 
                 // ---------------------- EXPORT PASSWORDS ----------------------
+//                case 3 -> {
+//                    List<Password> passwords = storage.loadPasswords();
+//
+//                    if (passwords.isEmpty()) {
+//                        System.out.println("No passwords to export.");
+//                        break;
+//                    }
+//
+//                    System.out.print("Export as (1) CSV or (2) JSON: ");
+//                    int opt = getInt(sc);
+//
+//                    if (opt == 1) {
+//                        ExportManager.exportToCSV(passwords, "passwords.csv");
+//                    } else {
+//                        ExportManager.exportToJSON(passwords, "passwords.json");
+//                    }
+//                }
+                // ---------------------- EXPORT PASSWORDS ----------------------
                 case 3 -> {
                     List<Password> passwords = storage.loadPasswords();
 
@@ -83,12 +101,29 @@ public class PasswordApp {
                     System.out.print("Export as (1) CSV or (2) JSON: ");
                     int opt = getInt(sc);
 
+                    // Create 'saved' folder if it doesn't exist
+                    java.io.File savedFolder = new java.io.File("Saved");
+                    if (!savedFolder.exists()) {
+                        boolean created = savedFolder.mkdir();
+                        if (created) {
+                            System.out.println("'saved' folder created successfully.");
+                        } else {
+                            System.out.println("⚠️ Failed to create 'saved' folder.");
+                        }
+                    }
+
+                    // Determine file path inside 'saved' folder
+                    String filePath = (opt == 1) ? "saved/passwords.csv" : "saved/passwords.json";
+
                     if (opt == 1) {
-                        ExportManager.exportToCSV(passwords, "passwords.csv");
+                        ExportManager.exportToCSV(passwords, filePath);
+                        System.out.println("✅ Passwords exported to " + filePath);
                     } else {
-                        ExportManager.exportToJSON(passwords, "passwords.json");
+                        ExportManager.exportToJSON(passwords, filePath);
+                        System.out.println("✅ Passwords exported to " + filePath);
                     }
                 }
+
 
                 // ---------------------- EXIT PROGRAM ----------------------
                 case 4 -> {
