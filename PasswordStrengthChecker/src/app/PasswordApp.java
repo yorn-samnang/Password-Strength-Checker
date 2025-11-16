@@ -5,6 +5,7 @@ import service.GeneratedPasswordStorage;
 import service.PasswordChecker;
 import service.PasswordStorage;
 import service.PasswordGenerator;
+import service.PasswordGuidelines;
 import export.ExportManager;
 
 import java.io.File;
@@ -17,6 +18,7 @@ public class PasswordApp {
         Scanner sc = new Scanner(System.in);
         PasswordChecker checker = new PasswordChecker();
         PasswordStorage storage = new PasswordStorage("passwords.txt");
+        PasswordGuidelines guidelines = new PasswordGuidelines();
 
         System.out.println("==============================");
         System.out.println(" 🔐 Password Strength Checker ");
@@ -28,7 +30,8 @@ public class PasswordApp {
             System.out.println("2. View Saved Passwords");
             System.out.println("3. Export Passwords");
             System.out.println("4. Generate Strong Password");
-            System.out.println("5. Exit");
+            System.out.println("5. View Password Guidelines");
+            System.out.println("6. Exit");
             System.out.print("Enter your choice: ");
 
             int choice = getInt(sc);
@@ -38,7 +41,8 @@ public class PasswordApp {
                 case 2 -> handlePasswordView(storage);
                 case 3 -> handlePasswordExport(sc, storage);
                 case 4 -> handlePasswordGeneration(sc, storage);
-                case 5 -> {
+                case 5 -> handlePasswordGuidelines(guidelines);
+                case 6 -> {
                     System.out.println("Goodbye!");
                     return;
                 }
@@ -138,6 +142,12 @@ public class PasswordApp {
         } else {
             System.out.println("Password not saved.");
         }
+    }
+
+    // ================ 5. VIEW PASSWORD GUIDELINES ==================
+    private static void handlePasswordGuidelines(PasswordGuidelines guidelines) {
+        String description = guidelines.loadPasswordGuidelines();
+        System.out.println(description);
     }
 
     // ================ HELPER ==================

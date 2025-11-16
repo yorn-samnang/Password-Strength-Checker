@@ -1,0 +1,50 @@
+package service;
+
+public class PasswordGuidelines {
+    public static String loadPasswordGuidelines() {
+        return  """
+                ===================
+                Password Guidelines
+                ===================
+              
+                These are the guidelines to help you know and create a strong password.
+            
+                ===================
+                Strong Password:
+                - Is not in the common password list
+                - Has upper-case and lower-case characters, digits, and symbols
+                - Differs significantly from the username and does not contain it
+                - Does not contain simple patterns such as “1234”, “abcd”, or keyboard sequences
+                - Avoids using repeated characters (e.g., "aaaa" or "1111")
+                - Does not include the current year or any year-like pattern (e.g., 2024, 1999)
+                - Is at least 12 characters long to provide stronger security
+                - Uses a mix of unrelated words or phrases rather than predictable combinations
+                
+                ===================
+                Medium Password:
+                - Is not in the common password list
+                - Does not contain or resemble the username
+                - Does not contain simple sequences such as “1234”, “abcd”, or “qwerty”
+                - Does not repeat the same character four times in a row
+                - Does not include the current year or any year-like pattern
+                - Has a minimum length of 8 characters
+                - Has at least two of the following: uppercase, lowercase, digits
+                - Lacks some elements required for a strong password (e.g., symbols or length ≥ 12)
+                
+                ===================
+                Weak Password:
+                - Is empty or shorter than 6 characters
+                - Appears in the common password list
+                - Contains the username or parts of it
+                - Contains simple sequences like “1234”, “abcd”, or “qwerty”
+                - Contains 4 or more repeated characters (e.g., “aaaa”, “1111”)
+                - Includes the current year or any year-like pattern (e.g., 2024, 1999)
+                - Lacks character diversity (e.g., only lowercase, only digits)
+                - Scores too low based on length and character variety (score ≤ 2)
+                
+                ===================
+                We hope these guidelines help you identify the level of passwords (weak, medium, and strong).
+                """;
+
+    }
+}

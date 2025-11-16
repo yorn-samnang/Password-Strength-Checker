@@ -92,7 +92,7 @@ public class PasswordChecker {
         if (isCommonPassword(pass)) return "Weak";
 
         // ❌ Reject repeated same character >= 4 times (aaaa, 1111)
-        if (pass.matches("(.)\\1{3,}")) return "Weak";
+        if (pass.matches(".*(.)\\1{3,}.*")) return "Weak";
 
         // ❌ Reject if contains username
         if (username != null && !username.isEmpty()) {
