@@ -10,7 +10,7 @@ import java.util.*;
 
 public class GeneratedPasswordStorage {
 
-    private final String fileName = "generated_passwords.txt";
+    private final String fileName = "src/resources/generated_passwords.txt";
 
     public List<Password> loadGeneratedPasswords() {
         List<Password> list = new ArrayList<>();
@@ -63,7 +63,7 @@ public class GeneratedPasswordStorage {
             writer.write(nextId + "::" + hash + "::" + timestamp);
             writer.newLine();
 
-            System.out.println("💾 Generated password saved to generated_passwords.txt");
+            System.out.println("💾 Generated password saved to src/resources/generated_passwords.txt");
 
         } catch (IOException e) {
             System.out.println("Error saving generated password: " + e.getMessage());
