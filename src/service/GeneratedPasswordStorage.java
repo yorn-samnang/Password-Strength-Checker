@@ -28,7 +28,8 @@ public class GeneratedPasswordStorage {
                     String hash = parts[1];
                     String createdAt = parts[2];
 
-                    list.add(new Password(id, hash, createdAt));
+                    list.add(new Password(id, "N/A", "N/A", hash, createdAt));
+
                 }
             }
 

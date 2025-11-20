@@ -53,6 +53,7 @@ public class PasswordApp {
     }
 
     // ================ 1. CHECK PASSWORD ==================
+// ================ 1. CHECK PASSWORD ==================
     private static void handlePasswordCheck(Scanner sc, PasswordChecker checker, PasswordStorage storage) {
         System.out.print("Enter username (for validation): ");
         String username = sc.nextLine();
@@ -69,37 +70,40 @@ public class PasswordApp {
         System.out.println("Password Strength: " + strength);
 
         if (strength.equalsIgnoreCase("Strong")) {
-            storage.savePassword(passwordInput);
+            storage.savePassword(username, passwordInput);   // <-- ✔ Correct call
         } else {
             System.out.println("⚠️ Try to create a stronger password.");
         }
     }
 
-    // ================ 2. VIEW SAVED PASSWORDS ==================
-    private static void handlePasswordView(PasswordStorage storage) {
-        try {
-            List<Password> list = storage.loadPasswords();
+    // ================ 2. VIEW PASSWORDS ==================
+private static void handlePasswordView(PasswordStorage storage) {
+    try {
+        List<Password> list = storage.loadPasswords();
 
-            // Throw an exception if list is empty instead of using if
-            if (list.isEmpty()) {
-                throw new NoSuchElementException("No passwords saved.");
-            }
-
-            System.out.println("\n=== Saved Passwords (Secure View) ===");
-            for (Password p : list) {
-                System.out.println("----------------------------------------");
-                System.out.println("ID        : " + p.getId());
-                System.out.println("Hash      : " + p.getHashedValue());
-                System.out.println("Created At: " + p.getCreatedAt());
-            }
-            System.out.println("----------------------------------------");
-
-        } catch (NoSuchElementException e) {
-            System.out.println(e.getMessage());
-        } catch (Exception e) {
-            System.out.println("Error viewing passwords: " + e.getMessage());
+        if (list.isEmpty()) {
+            throw new NoSuchElementException("No passwords saved.");
         }
+
+        System.out.println("\n=== Saved Passwords (Decrypted View) ===");
+
+        for (Password p : list) {
+            System.out.println("----------------------------------------");
+            System.out.println("ID        : " + p.getId());
+            System.out.println("Username  : " + p.getUsername());
+            System.out.println("Password  : " + p.getDecryptedPassword());  // 🔓 decrypted
+            System.out.println("Created At: " + p.getCreatedAt());
+        }
+
+        System.out.println("----------------------------------------");
+
+    } catch (NoSuchElementException e) {
+        System.out.println(e.getMessage());
+    } catch (Exception e) {
+        System.out.println("Error viewing passwords: " + e.getMessage());
     }
+}
+
 
     // ================ 3. EXPORT PASSWORDS ==================
     private static void handlePasswordExport(Scanner sc, PasswordStorage storage) {
