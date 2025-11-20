@@ -10,6 +10,7 @@ import export.ExportManager;
 
 import java.io.File;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 public class PasswordApp {
@@ -17,7 +18,7 @@ public class PasswordApp {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         PasswordChecker checker = new PasswordChecker();
-        PasswordStorage storage = new PasswordStorage("passwords.txt");
+        PasswordStorage storage = new PasswordStorage("src/resources/passwords.txt");
         PasswordGuidelines guidelines = new PasswordGuidelines();
 
         System.out.println("==============================");
@@ -76,21 +77,28 @@ public class PasswordApp {
 
     // ================ 2. VIEW SAVED PASSWORDS ==================
     private static void handlePasswordView(PasswordStorage storage) {
-        List<Password> list = storage.loadPasswords();
+        try {
+            List<Password> list = storage.loadPasswords();
 
-        if (list.isEmpty()) {
-            System.out.println("No passwords saved.");
-            return;
-        }
+            // Throw an exception if list is empty instead of using if
+            if (list.isEmpty()) {
+                throw new NoSuchElementException("No passwords saved.");
+            }
 
-        System.out.println("\n=== Saved Passwords (Secure View) ===");
-        for (Password p : list) {
+            System.out.println("\n=== Saved Passwords (Secure View) ===");
+            for (Password p : list) {
+                System.out.println("----------------------------------------");
+                System.out.println("ID        : " + p.getId());
+                System.out.println("Hash      : " + p.getHashedValue());
+                System.out.println("Created At: " + p.getCreatedAt());
+            }
             System.out.println("----------------------------------------");
-            System.out.println("ID        : " + p.getId());
-            System.out.println("Hash      : " + p.getHashedValue());
-            System.out.println("Created At: " + p.getCreatedAt());
+
+        } catch (NoSuchElementException e) {
+            System.out.println(e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Error viewing passwords: " + e.getMessage());
         }
-        System.out.println("----------------------------------------");
     }
 
     // ================ 3. EXPORT PASSWORDS ==================

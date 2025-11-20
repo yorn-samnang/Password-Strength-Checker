@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/1_Final Project.iml" filepath="$PROJECT_DIR$/1_Final Project.iml" />
-      <module fileurl="file://$PROJECT_DIR$/PasswordStrengthChecker/PasswordStrengthChecker.iml" filepath="$PROJECT_DIR$/PasswordStrengthChecker/PasswordStrengthChecker.iml" />
     </modules>
   </component>
 </project>
