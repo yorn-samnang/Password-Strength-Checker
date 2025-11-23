@@ -1,37 +1,58 @@
 package service;
 
 import model.Password;
-import util.HashUtil;
+import util.CryptoUtils;
 
+import javax.crypto.SecretKey;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+/**
+ * Handles storage and retrieval of generated passwords.
+ * Encrypts passwords with a master password using CryptoUtils.
+ */
 public class GeneratedPasswordStorage {
 
-    private final String fileName = "src/resources/generated_passwords.txt";
+    private final String fileName = "src/resources/passwords.txt";
+    private final String masterPassword; // simulate device KEK / user master key
 
+    public GeneratedPasswordStorage(String masterPassword) {
+        this.masterPassword = masterPassword;
+    }
+
+    /**
+     * Load all passwords and decrypt them using masterPassword.
+     * Skips entries that cannot be decrypted.
+     *
+     * @return list of successfully decrypted Password objects
+     */
     public List<Password> loadGeneratedPasswords() {
         List<Password> list = new ArrayList<>();
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
-
+        try (BufferedReader reader = new BufferedReader(new FileReader(fileName, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
-
-                // Format: id::hash::createdAt
                 String[] parts = line.split("::");
+                if (parts.length != 5) continue; // skip malformed lines
 
-                if (parts.length == 3) {
+                try {
                     int id = Integer.parseInt(parts[0]);
-                    String hash = parts[1];
-                    String createdAt = parts[2];
+                    byte[] salt = Base64.getDecoder().decode(parts[1]);
+                    byte[] iv = Base64.getDecoder().decode(parts[2]);
+                    String encrypted = parts[3];
+                    String createdAt = parts[4];
 
-                    list.add(new Password(id, hash, createdAt));
+                    SecretKey key = CryptoUtils.deriveKey(masterPassword.toCharArray(), salt);
+                    String decrypted = CryptoUtils.decrypt(encrypted, key, iv);
+
+                    list.add(new Password(id, decrypted, createdAt));
+                } catch (Exception ignored) {
+                    // silently skip failed decryptions
                 }
             }
-
         } catch (FileNotFoundException e) {
             System.out.println("(No generated passwords yet)");
         } catch (IOException e) {
@@ -41,32 +62,53 @@ public class GeneratedPasswordStorage {
         return list;
     }
 
+    /**
+     * Save a new password securely with encryption, preventing duplicates.
+     *
+     * @param rawPassword The plaintext password to save
+     */
     public void saveGeneratedPassword(String rawPassword) {
         List<Password> existing = loadGeneratedPasswords();
-        String hash = HashUtil.hashPassword(rawPassword);
 
-        // Avoid saving duplicates
+        // Prevent duplicates
         for (Password p : existing) {
-            if (p.getHashedValue().equals(hash)) {
-                System.out.println("⚠️ Generated password hash already exists.");
+            if (p.getValue().equals(rawPassword)) {
+                System.out.println("⚠️ Generated password already exists.");
                 return;
             }
         }
 
-        int nextId = existing.size() + 1;
+        // Use max ID + 1 for nextId
+        int nextId = existing.stream().mapToInt(Password::getId).max().orElse(0) + 1;
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 
-        String timestamp = LocalDateTime.now()
-                .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName, StandardCharsets.UTF_8, true))) {
+            byte[] salt = CryptoUtils.generateSalt();
+            byte[] iv = CryptoUtils.generateIV();
+            SecretKey key = CryptoUtils.deriveKey(masterPassword.toCharArray(), salt);
+            String encrypted = CryptoUtils.encrypt(rawPassword, key, iv);
 
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName, true))) {
+            String line = nextId + "::" +
+                    Base64.getEncoder().encodeToString(salt) + "::" +
+                    Base64.getEncoder().encodeToString(iv) + "::" +
+                    encrypted + "::" +
+                    timestamp;
 
-            writer.write(nextId + "::" + hash + "::" + timestamp);
+            writer.write(line);
             writer.newLine();
 
-            System.out.println("💾 Generated password saved to src/resources/generated_passwords.txt");
-
-        } catch (IOException e) {
-            System.out.println("Error saving generated password: " + e.getMessage());
+            System.out.println("💾 Password saved securely.");
+        } catch (Exception e) {
+            System.out.println("Error saving password: " + e.getMessage());
         }
+    }
+
+    /**
+     * Optional: Validate master password before loading.
+     * Returns true if at least one password can be decrypted successfully.
+     */
+    public boolean validateMasterPassword() {
+        List<Password> list = loadGeneratedPasswords();
+        return !list.isEmpty();
     }
 }

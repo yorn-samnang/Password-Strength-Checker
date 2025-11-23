@@ -3,27 +3,24 @@ package model;
 public class Password {
 
     private int id;
-    private String hashedValue;
-    private String createdAt; // stored as ISO string (e.g., 2025-11-14T22:00)
+    private String value; // decrypted password
+    private String createdAt;
 
-    // Constructor used when loading from file
-    public Password(int id, String hashedValue, String createdAt) {
+    public Password(int id, String value, String createdAt) {
         this.id = id;
-        this.hashedValue = hashedValue;
+        this.value = value;
         this.createdAt = createdAt;
     }
 
-    // Getters
     public int getId() {
         return id;
     }
 
-    public String getHashedValue() {
-        return hashedValue;
+    public String getValue() {
+        return value;
     }
 
     public String getCreatedAt() {
         return createdAt;
     }
 }
-
