@@ -15,12 +15,12 @@ public class ExportManager {
     public static boolean exportToCSV(List<Password> passwords, String filePath) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
 
-            writer.write("ID,HashedValue,CreatedAt");
+            writer.write("ID,Password,CreatedAt");
             writer.newLine();
 
             for (Password p : passwords) {
                 writer.write(p.getId() + "," +
-                        p.getHashedValue() + "," +
+                        p.getValue() + "," +   // use decrypted value
                         p.getCreatedAt());
                 writer.newLine();
             }
@@ -41,8 +41,8 @@ public class ExportManager {
         for (Password p : passwords) {
             JSONObject obj = new JSONObject();
             obj.put("id", p.getId());
-            obj.put("hash", p.getHashedValue());
-            obj.put("createdAt", p.getCreatedAt().toString());
+            obj.put("password", p.getValue());  // use decrypted value
+            obj.put("createdAt", p.getCreatedAt());
             array.add(obj);
         }
 

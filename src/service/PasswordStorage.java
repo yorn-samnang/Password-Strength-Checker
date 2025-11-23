@@ -1,168 +1,114 @@
-//package service;
-//
-//import model.Password;
-//import util.HashUtil;
-//
-//import java.io.*;
-//import java.time.LocalDateTime;
-//import java.time.format.DateTimeFormatter;
-//import java.util.*;
-//
-//public class PasswordStorage {
-//
-//    private final String fileName;
-//
-//    public PasswordStorage(String fileName) {
-//        this.fileName = fileName;
-//    }
-//
-//    public List<Password> loadPasswords() {
-//        List<Password> list = new ArrayList<>();
-//
-//        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
-//
-//            String line;
-//            while ((line = reader.readLine()) != null) {
-//                // Format stored as: id::hash::createdAt
-//                String[] parts = line.split("::");
-//
-//                if (parts.length == 3) {
-//                    int id = Integer.parseInt(parts[0]);
-//                    String hash = parts[1];
-//                    String createdAt = parts[2];
-//
-//                    // Match new constructor (int, String, String)
-//                    list.add(new Password(id, hash, createdAt));
-//                }
-//            }
-//
-//        } catch (FileNotFoundException e) {
-//            System.out.println("(No saved passwords yet)");
-//        } catch (IOException e) {
-//            System.out.println("Error reading file: " + e.getMessage());
-//        }
-//
-//        return list;
-//    }
-//
-//    // Save password with NEW MODEL
-//    public void savePassword(String rawPassword) {
-//        List<Password> existing = loadPasswords();
-//        String hash = HashUtil.hashPassword(rawPassword);
-//
-//        // Prevent duplicate hashes
-//        for (Password p : existing) {
-//            if (p.getHashedValue().equals(hash)) {
-//                System.out.println("⚠️ Password hash already saved.");
-//                return;
-//            }
-//        }
-//
-//        int nextId = existing.size() + 1;
-//
-//        // Timestamp stored as String (ISO)
-//        String timestamp = LocalDateTime.now()
-//                .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-//
-//        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName, true))) {
-//            writer.write(nextId + "::" + hash + "::" + timestamp);
-//            writer.newLine();
-//
-//            System.out.println("✅ Password saved securely (hashed only).");
-//
-//        } catch (IOException e) {
-//            System.out.println("Error writing file: " + e.getMessage());
-//        }
-//    }
-//}
-
-
 package service;
 
 import model.Password;
-import util.CryptoUtil;
-import util.HashUtil;
+import util.CryptoUtils;
 
+import javax.crypto.SecretKey;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+/**
+ * Handles secure storage of passwords using a master password.
+ */
 public class PasswordStorage {
 
     private final String fileName;
+    private final String masterPassword;
 
-    public PasswordStorage(String fileName) {
+    public PasswordStorage(String fileName, String masterPassword) {
         this.fileName = fileName;
+        this.masterPassword = masterPassword;
     }
 
-    // ================= LOAD PASSWORDS ==================
+    /**
+     * Load all passwords and decrypt them using masterPassword.
+     * Failed decryptions are silently skipped to avoid console spam.
+     *
+     * @return list of successfully decrypted Password objects
+     */
     public List<Password> loadPasswords() {
         List<Password> list = new ArrayList<>();
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
-
+        try (BufferedReader reader = new BufferedReader(new FileReader(fileName, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
-
-                // NEW FORMAT:
-                // id::username::encryptedPassword::hashedPassword::createdAt
                 String[] parts = line.split("::");
+                if (parts.length != 5) continue; // skip malformed lines
 
-                if (parts.length == 5) {
+                try {
                     int id = Integer.parseInt(parts[0]);
-                    String username = parts[1];
-                    String encrypted = parts[2];
-                    String hash = parts[3];
+                    byte[] salt = Base64.getDecoder().decode(parts[1]);
+                    byte[] iv = Base64.getDecoder().decode(parts[2]);
+                    String encrypted = parts[3];
                     String createdAt = parts[4];
 
-                    list.add(new Password(id, username, encrypted, hash, createdAt));
+                    SecretKey key = CryptoUtils.deriveKey(masterPassword.toCharArray(), salt);
+                    String decrypted = CryptoUtils.decrypt(encrypted, key, iv);
+
+                    list.add(new Password(id, decrypted, createdAt));
+                } catch (Exception ignored) {
+                    // silently skip failed decryptions
                 }
             }
-
         } catch (FileNotFoundException e) {
             System.out.println("(No saved passwords yet)");
         } catch (IOException e) {
-            System.out.println("Error reading file: " + e.getMessage());
+            System.out.println("Error reading passwords: " + e.getMessage());
         }
 
         return list;
     }
 
-    // ================= SAVE PASSWORD ===================
-    public void savePassword(String username, String rawPassword) {
-
+    /**
+     * Save a new password securely with encryption, preventing duplicates.
+     *
+     * @param rawPassword The plaintext password to save
+     */
+    public void savePassword(String rawPassword) {
         List<Password> existing = loadPasswords();
 
-        // Encrypt + hash password
-        String encrypted = CryptoUtil.encrypt(rawPassword);
-        String hash = HashUtil.hashPassword(rawPassword);
-
-        // Prevent duplicate hashed passwords
+        // Prevent duplicates by comparing decrypted values
         for (Password p : existing) {
-            if (p.getHashedValue().equals(hash)) {
-                System.out.println("⚠️ Password already exists (same hash).");
+            if (p.getValue().equals(rawPassword)) {
+                System.out.println("⚠️ Password already exists.");
                 return;
             }
         }
 
-        int nextId = existing.size() + 1;
+        // Use max ID + 1 for nextId
+        int nextId = existing.stream().mapToInt(Password::getId).max().orElse(0) + 1;
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 
-        // Timestamp (ISO8601)
-        String timestamp = LocalDateTime.now()
-                .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName, StandardCharsets.UTF_8, true))) {
+            byte[] salt = CryptoUtils.generateSalt();
+            byte[] iv = CryptoUtils.generateIV();
+            SecretKey key = CryptoUtils.deriveKey(masterPassword.toCharArray(), salt);
+            String encrypted = CryptoUtils.encrypt(rawPassword, key, iv);
 
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName, true))) {
+            String line = nextId + "::" +
+                    Base64.getEncoder().encodeToString(salt) + "::" +
+                    Base64.getEncoder().encodeToString(iv) + "::" +
+                    encrypted + "::" +
+                    timestamp;
 
-            // NEW FORMAT:
-            // id::username::encryptedPassword::hashedPassword::createdAt
-            writer.write(nextId + "::" + username + "::" + encrypted + "::" + hash + "::" + timestamp);
+            writer.write(line);
             writer.newLine();
 
-            System.out.println("✅ Password saved securely!");
-
-        } catch (IOException e) {
-            System.out.println("Error writing file: " + e.getMessage());
+            System.out.println("✅ Password saved securely.");
+        } catch (Exception e) {
+            System.out.println("Error saving password: " + e.getMessage());
         }
+    }
+
+    /**
+     * Optional: Validate master password.
+     * Returns true if at least one password can be decrypted successfully.
+     */
+    public boolean validateMasterPassword() {
+        List<Password> list = loadPasswords();
+        return !list.isEmpty();
     }
 }
